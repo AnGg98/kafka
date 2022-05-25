@@ -90,6 +90,7 @@ import java.util.function.Supplier;
 
 public class SaslServerAuthenticator implements Authenticator {
     private static final Logger LOG = LoggerFactory.getLogger(SaslServerAuthenticator.class);
+    public static final String SASL_HANDSHAKE_CONFIG_PREFIX = "sasl.handshake.";
 
     /**
      * The internal state transitions for initial authentication of a channel on the
@@ -145,6 +146,8 @@ public class SaslServerAuthenticator implements Authenticator {
     private Send authenticationFailureSend = null;
     // flag indicating if sasl tokens are sent as Kafka SaslAuthenticate request/responses
     private boolean enableKafkaSaslAuthenticateHeaders;
+    private final Map<String, Integer> saslServerMaxReceiveSizeByMechanism;
+    private Integer saslAuthRequestMaxHandshakeReceiveSize;
 
     public SaslServerAuthenticator(Map<String, ?> configs,
                                    Map<String, AuthenticateCallbackHandler> callbackHandlers,
@@ -155,6 +158,7 @@ public class SaslServerAuthenticator implements Authenticator {
                                    SecurityProtocol securityProtocol,
                                    TransportLayer transportLayer,
                                    Map<String, Long> connectionsMaxReauthMsByMechanism,
+                                   Map<String, Integer> saslServerMaxReceiveSizeByMechanism,
                                    ChannelMetadataRegistry metadataRegistry,
                                    Time time,
                                    Supplier<ApiVersionsResponse> apiVersionSupplier) {
@@ -163,6 +167,7 @@ public class SaslServerAuthenticator implements Authenticator {
         this.subjects = subjects;
         this.listenerName = listenerName;
         this.securityProtocol = securityProtocol;
+        this.saslServerMaxReceiveSizeByMechanism = saslServerMaxReceiveSizeByMechanism;
         this.enableKafkaSaslAuthenticateHeaders = false;
         this.transportLayer = transportLayer;
         this.connectionsMaxReauthMsByMechanism = connectionsMaxReauthMsByMechanism;
@@ -193,6 +198,13 @@ public class SaslServerAuthenticator implements Authenticator {
         saslAuthRequestMaxReceiveSize = (Integer) configs.get(BrokerSecurityConfigs.SASL_SERVER_AUTHN_MAX_RECEIVE_SIZE_CONFIG);
         if (saslAuthRequestMaxReceiveSize == null)
             saslAuthRequestMaxReceiveSize = BrokerSecurityConfigs.DEFAULT_SASL_SERVER_AUTHN_MAX_RECEIVE_SIZE;
+
+        if (configs.get(SASL_HANDSHAKE_CONFIG_PREFIX + BrokerSecurityConfigs.SASL_SERVER_AUTHN_MAX_RECEIVE_SIZE_CONFIG) == null)
+            saslAuthRequestMaxHandshakeReceiveSize = saslAuthRequestMaxReceiveSize;
+        else
+            saslAuthRequestMaxHandshakeReceiveSize = Integer.valueOf(
+                    (String) configs.get(SASL_HANDSHAKE_CONFIG_PREFIX + BrokerSecurityConfigs.SASL_SERVER_AUTHN_MAX_RECEIVE_SIZE_CONFIG));
+
     }
 
     private void createSaslServer(String mechanism) throws IOException {
@@ -256,7 +268,7 @@ public class SaslServerAuthenticator implements Authenticator {
             }
 
             // allocate on heap (as opposed to any socket server memory pool)
-            if (netInBuffer == null) netInBuffer = new NetworkReceive(saslAuthRequestMaxReceiveSize, connectionId);
+            if (netInBuffer == null) netInBuffer = new NetworkReceive(maxNetInBufferSize(), connectionId);
 
             try {
                 netInBuffer.readFrom(transportLayer);
@@ -303,6 +315,10 @@ public class SaslServerAuthenticator implements Authenticator {
             LOG.debug("Failed during {}: {}", reauthInfo.authenticationOrReauthenticationText(), e.getMessage());
             throw e;
         }
+    }
+
+    private int maxNetInBufferSize() {
+        return (saslMechanism == null) ? saslAuthRequestMaxHandshakeReceiveSize : saslServerMaxReceiveSizeByMechanism.get(saslMechanism);
     }
 
     @Override

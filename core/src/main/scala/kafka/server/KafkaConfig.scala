@@ -258,7 +258,7 @@ object Defaults {
 
     /** ********* General Security configuration ***********/
   val ConnectionsMaxReauthMsDefault = 0L
-  val DefaultServerAuthMaxMaxReceiveSize = BrokerSecurityConfigs.DEFAULT_SASL_SERVER_AUTHN_MAX_RECEIVE_SIZE
+  val DefaultServerAuthMaxReceiveSize = BrokerSecurityConfigs.DEFAULT_SASL_SERVER_AUTHN_MAX_RECEIVE_SIZE
   val DefaultPrincipalSerde = classOf[DefaultKafkaPrincipalBuilder]
 
   /** ********* Sasl configuration ***********/
@@ -1318,7 +1318,7 @@ object KafkaConfig {
 
       /** ********* General Security Configuration ****************/
       .define(ConnectionsMaxReauthMsProp, LONG, Defaults.ConnectionsMaxReauthMsDefault, MEDIUM, ConnectionsMaxReauthMsDoc)
-      .defineInternal(SaslServerAuthMaxReceiveSizeProp, INT, Defaults.DefaultServerAuthMaxMaxReceiveSize, MEDIUM, SaslServerAuthnMaxReceiveSizeDoc)
+      .defineInternal(SaslServerAuthMaxReceiveSizeProp, INT, Defaults.DefaultServerAuthMaxReceiveSize, MEDIUM, SaslServerAuthnMaxReceiveSizeDoc)
       .define(securityProviderClassProp, STRING, null, LOW, securityProviderClassDoc)
 
       /** ********* SSL Configuration ****************/
