@@ -26,7 +26,6 @@ import org.apache.kafka.common.network.ChannelBuilders;
 import org.apache.kafka.common.network.ChannelMetadataRegistry;
 import org.apache.kafka.common.network.ClientInformation;
 import org.apache.kafka.common.network.DefaultChannelMetadataRegistry;
-import org.apache.kafka.common.network.InvalidReceiveException;
 import org.apache.kafka.common.network.ListenerName;
 import org.apache.kafka.common.network.TransportLayer;
 import org.apache.kafka.common.protocol.ApiKeys;
@@ -87,7 +86,7 @@ import static org.mockito.Mockito.when;
 public class SaslServerAuthenticatorTest {
 
     private final String clientId = "clientId";
-
+    
     @Test
     public void testOversizeRequest() throws IOException {
         TransportLayer transportLayer = mock(TransportLayer.class);
